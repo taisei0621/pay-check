@@ -22,7 +22,7 @@ describe('eventService', () => {
   });
 
   describe('createEventWithParticipants', () => {
-    it('イベントおよび参加者の登録が正常に完了し、eventIdを返すこと', () => {
+    it('立替者と集金先を含むイベントおよび参加者の登録が正常に完了し、eventIdを返すこと', () => {
       const mockSingle = vi.fn().mockResolvedValue({
         data: { id: 'test-event-uuid' },
         error: null,
@@ -45,6 +45,8 @@ describe('eventService', () => {
       return createEventWithParticipants({
         title: '歓迎会',
         amount_per_person: 4000,
+        payer_name: '田中',
+        payment_destination: 'PayPay ID: tanaka123',
         participant_names: ['佐藤', '田中'],
       }).then((result) => {
         expect(result.success).toBe(true);
@@ -52,6 +54,8 @@ describe('eventService', () => {
         expect(mockEventsInsert).toHaveBeenCalledWith({
           title: '歓迎会',
           amount_per_person: 4000,
+          payer_name: '田中',
+          payment_destination: 'PayPay ID: tanaka123',
         });
         expect(mockPaymentsInsert).toHaveBeenCalledWith([
           { event_id: 'test-event-uuid', participant_name: '佐藤', is_paid: false },

@@ -1,215 +1,94 @@
 # PayCheck 実装計画書 (plan.md)
 **プロジェクト**: PayCheck（1タップ集金・未払い可視化ツール）  
 **役割**: リードエンジニア  
-**フェーズ**: 第1週 垂直スライス（全層貫通）実装計画  
+**フェーズ**: 第2週 立替者・集金先可視化とUI刷新計画  
 
 ---
 
 ## 1. 概要と目標
-本計画は、ユーザー（幹事）がイベント情報と参加者を登録し、発行された固有URLにて参加者の「未払い/支払い済」を1タップで切り替え・永続化できる最小限の垂直スライス（全層貫通機能）を構築することを目的とします。
+第1週で達成した垂直スライス（全層貫通機能）を基盤とし、実際の飲み会・イベントでの集金ストレスをゼロにするための機能拡張とデザイン刷新を実施します。
+
+### 主な目標
+1. **「誰が立て替えて誰に集めればよいか」の可視化**:
+   - イベント作成時に立替者名（誰が支払ったか）と集金先（PayPay、銀行口座、現金など誰に渡すか）を設定可能にする。
+   - イベント管理画面の最上部に送金先バナーを表示し、参加者全員が迷わず送金できるようにする。
+2. **LINE・SNS向け案内文生成機能**:
+   - イベント名、立替者、金額、送金先、管理URLを含んだ共有用テキストを1タップでクリップボードにコピーできる機能の配備。
+3. **モバイル最適化モダンUIへの刷新**:
+   - 洗練されたカラーパレット、視認性の高いカードUI、スマホで押しやすいトグルボタンへのデザインリニューアル。
 
 プロジェクト行動規範（`.antigravity/rules.md`）に従い、以下の原則を徹底します：
 - **型安全の徹底**: `any` 型の完全禁止
-- **関心の分離**: UI、データアクセス層（Supabase）、純粋ビジネスロジックの明確な分離
-- **シンプルさの維持**: 複雑な認証は行わず、イベントUUIDベースの匿名アクセス
-- **テストの配備**: Vitestによるロジックの単体テスト
+- **関心の分離**: UI、データアクセス層、純粋ビジネスロジックの明確な分離
+- **テストの配備**: 新規追加ロジック（案内文生成等）に対するVitest単体テストの同時実装
 
 ---
 
-## 2. アーキテクチャとディレクトリ構造
+## 2. データ構造の拡張と型定義
 
-### 2.1 ディレクトリ設計
-```text
-pay-check/
-├── .antigravity/
-│   └── rules.md                  # 行動規範
-├── plan.md                       # 本実装計画書
-├── supabase/
-│   └── schema.sql                # データベース定義 (SQL DDL & RLS)
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx            # ルートレイアウト
-│   │   ├── page.tsx              # イベント作成画面（トップ）
-│   │   └── events/
-│   │       └── [id]/
-│   │           └── page.tsx      # イベント管理・支払い状況可視化画面
-│   ├── components/
-│   │   ├── ui/                   # 共通UI部品 (Button, Input, Card等)
-│   │   ├── EventCreateForm.tsx   # イベント作成フォーム (UI層)
-│   │   ├── ParticipantList.tsx   # 参加者リスト・トグル (UI層)
-│   │   └── SummaryCard.tsx       # 集金進捗サマリー表示 (UI層)
-│   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts         # Supabaseブラウザクライアント
-│   │   │   └── server.ts         # Supabaseサーバークライアント
-│   │   └── utils/
-│   │       └── payment-calc.ts   # 集金進捗・計算ロジック（純粋関数）
-│   ├── services/
-│   │   └── eventService.ts       # Supabase連携データアクセス層
-│   ├── types/
-│   │   └── database.ts           # ドメインモデル・DB型定義
-│   └── __tests__/
-│       ├── payment-calc.test.ts  # 純粋関数の単体テスト
-│       └── eventService.test.ts  # データアクセス層のテスト/モック
-├── vitest.config.ts              # Vitest設定ファイル
-├── tailwind.config.ts            # Tailwind CSS設定
-├── tsconfig.json                 # TypeScript設定 (strict: true)
-└── package.json
-```
+### 2.1 データベース拡張 (`supabase/schema.sql`)
+`events` テーブルに以下のカラムを追加：
+- `payer_name TEXT`: 立替者の名前（任意）
+- `payment_destination TEXT`: 集金先・支払い方法（任意、例: 「田中のPayPay」「現金」「三井住友銀行 ◯◯支店」）
 
-### 2.2 依存パッケージ一覧
-- **フレームワーク & UI**:
-  - `next`: ^14 or ^15 (App Router)
-  - `react`, `react-dom`
-  - `tailwindcss`, `postcss`, `autoprefixer`
-  - `lucide-react`: アイコン（チェックマーク、クリップボードコピー等）
-- **バックエンド / データベース**:
-  - `@supabase/supabase-js`: SupabaseクライアントSDK
-  - `@supabase/ssr`: Next.js App Router向けSupabase SSRヘルパー
-- **テスト & 品質**:
-  - `vitest`: 高速ユニットテストフレームワーク
-  - `@testing-library/react`, `@testing-library/jest-dom`: コンポーネント/DOM検証用
-  - `jsdom`: テスト実行DOM環境
-  - `typescript`: 型チェック (厳格モード)
-
----
-
-## 3. データ構造 & 型定義
-
-### 3.1 SQL スキーマ案 (`supabase/schema.sql`)
 ```sql
--- 1. UUID拡張の有効化
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 2. イベントテーブル (events)
-CREATE TABLE IF NOT EXISTS public.events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title TEXT NOT NULL,
-    amount_per_person INTEGER NOT NULL CHECK (amount_per_person >= 0),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
--- 3. 参加者・支払い管理テーブル (payments)
-CREATE TABLE IF NOT EXISTS public.payments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-    participant_name TEXT NOT NULL,
-    is_paid BOOLEAN NOT NULL DEFAULT false,
-    paid_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
--- 4. インデックス作成 (イベントIDでの参照を高速化)
-CREATE INDEX IF NOT EXISTS idx_payments_event_id ON public.payments(event_id);
-
--- 5. 行レベルセキュリティ (RLS) の設定 (シンプルさ維持: イベントIDを知っていれば操作可能)
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public read-write for events"
-    ON public.events FOR ALL
-    USING (true)
-    WITH CHECK (true);
-
-CREATE POLICY "Allow public read-write for payments"
-    ON public.payments FOR ALL
-    USING (true)
-    WITH CHECK (true);
+-- 既存テーブルへの追加移行用
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payer_name TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payment_destination TEXT;
 ```
 
-### 3.2 TypeScript 型定義 (`src/types/database.ts`)
+### 2.2 TypeScript 型定義の更新 (`src/types/database.ts`)
 ```typescript
-/** イベントエンティティ */
 export interface EventEntity {
   id: string;
   title: string;
   amount_per_person: number;
+  payer_name?: string | null;            // 立替者名
+  payment_destination?: string | null;   // 集金先・送金方法
   created_at: string;
   updated_at: string;
 }
 
-/** 支払い・参加者エンティティ */
-export interface PaymentEntity {
-  id: string;
-  event_id: string;
-  participant_name: string;
-  is_paid: boolean;
-  paid_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** イベント作成リクエスト入力型 */
 export interface CreateEventInput {
   title: string;
   amount_per_person: number;
   participant_names: string[];
-}
-
-/** イベント詳細・画面表示用集約型 */
-export interface EventWithPayments extends EventEntity {
-  payments: PaymentEntity[];
-}
-
-/** 集金サマリー集計型 */
-export interface PaymentSummary {
-  totalParticipants: number;
-  paidCount: number;
-  unpaidCount: number;
-  totalExpectedAmount: number;
-  totalCollectedAmount: number;
-  remainingAmount: number;
+  payer_name?: string;
+  payment_destination?: string;
 }
 ```
 
 ---
 
-## 4. 第1週 垂直スライス実装ステップ
+## 3. 実装ステップ
 
-### Step 1: プロジェクトの初期化 & 設定
-1. Next.js プロジェクトのセットアップ (App Router, TypeScript, Tailwind CSS, `src/` ディレクトリ構成)
-2. 必要なパッケージのインストール (`@supabase/supabase-js`, `@supabase/ssr`, `lucide-react`, `vitest`, `jsdom` 等)
-3. Vitest の設定 (`vitest.config.ts`) と動作確認用テストの実行確認
-4. 環境変数テンプレート (`.env.example`) の整備 (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+### Step 1: 型定義 & 純粋関数の拡張とTDDテスト
+1. `src/types/database.ts` に `payer_name`, `payment_destination` を追加。
+2. `src/lib/utils/payment-calc.ts` に案内文生成の純粋関数 `generateShareMessage` を実装：
+   - イベント名、金額、立替者、集金先、イベントURLを整形した案内テキストを生成。
+3. `src/__tests__/payment-calc.test.ts` に `generateShareMessage` の単体テストを追加し、テスト通過を確認。
 
-### Step 2: データレイヤー & ロジックの構築（TDDベース）
-1. `src/types/database.ts` に型定義を作成。
-2. 集金計算ロジック (`src/lib/utils/payment-calc.ts`) を純粋関数として実装:
-   - 集計計算関数 `calculatePaymentSummary(amountPerPerson, payments): PaymentSummary`
-   - 入力バリデーション関数 `validateEventInput(input): { valid: boolean; errors: Record<string, string> }`
-3. Vitest による単体テスト作成 & パス確認 (`src/__tests__/payment-calc.test.ts`)
-4. Supabase クライアント・サービスクラス (`src/services/eventService.ts`) の実装:
-   - `createEventWithParticipants(input: CreateEventInput): Promise<string>`
-   - `getEventWithPayments(eventId: string): Promise<EventWithPayments | null>`
-   - `togglePaymentStatus(paymentId: string, currentStatus: boolean): Promise<boolean>`
+### Step 2: データアクセス層の拡張
+1. `src/services/eventService.ts`:
+   - `createEventWithParticipants` に立替者・集金先フィールドを追加。
+   - ローカルストレージモックおよびSupabaseクエリの両方で立替者・集金先を正しく永続化・取得できるよう更新。
+2. `src/__tests__/eventService.test.ts` のモックテストを更新してテスト通過を確認。
 
-### Step 3: UIコンポーネントの実装
-1. `src/components/EventCreateForm.tsx`:
-   - イベント名、金額、参加者名（複数行テキストエリアまたは動的追加リスト）
-   - クライアント側バリデーション
-   - 作成後の `/events/[id]` 遷移
-2. `src/components/ParticipantList.tsx`:
-   - 参加者一覧テーブル/リスト
-   - 「未払い/支払い済」1タップトグルボタン
-   - トグル時の楽観的UI更新 (Optimistic UI) または即時反映
-3. `src/components/SummaryCard.tsx`:
-   - 回収済み金額 / 目標金額 / 未回収人数の進捗バー表示
+### Step 3: UIデザインの刷新 & 新機能コンポーネント実装
+1. **新規コンポーネント**: `src/components/PayerInfoCard.tsx`
+   - 立替者名と集金先（PayPayや口座など）を分かりやすく目立つバナーとして表示。
+   - 未設定の場合でも邪魔にならない柔軟なUI。
+2. **フォームの改修**: `src/components/EventCreateForm.tsx`
+   - 「立替者（任意）」「支払い先・集金方法（任意）」の入力項目を追加。
+   - よりモダンで洗練された入力フォームデザインへ刷新。
+3. **サマリー & 参加者リストの刷新**:
+   - `SummaryCard.tsx` / `ParticipantList.tsx` のレイアウト・配色・タイポグラフィを洗練。
+   - 1タップトグルボタンの視認性とタップフィードバックを向上。
+4. **案内文共有ボタンの実装**:
+   - イベント画面に「LINE案内文をコピー」ボタンを追加し、ワンタップでクリップボードへコピー。
 
-### Step 4: 画面の組み立て & 全層貫通の検証
-1. トップ画面 (`src/app/page.tsx`): `EventCreateForm` を配置
-2. イベント管理画面 (`src/app/events/[id]/page.tsx`):
-   - 該当イベントと参加者リストの取得表示
-   - URL共有機能（リンクコピーボタン）
-3. 動作検証:
-   - イベント作成 → DB登録確認
-   - 固有URL発行・遷移確認
-   - 支払いトグル押下 → DB (`is_paid`, `paid_at`) 更新確認
-   - ブラウザ再読み込み（リロード）後も状態が維持されていることの確認
-   - `npm run test` (Vitest) による自動テスト全通過確認
-
----
-
-## 5. 合意事項・確認ポイント
-- 本計画書の内容で問題がなければ、**Step 1（プロジェクト初期化とパッケージ設定）** から順次着手いたします。
+### Step 4: 結合テスト、ビルド検証、本番配備
+1. `npm test` による全単体テスト通過を確認。
+2. `npx tsc --noEmit` によるTypeScript型エラー0を確認。
+3. `npm run build` による本番ビルド通過を確認。
+4. GitHubへのプッシュ（mainブランチ）およびVercel自動デプロイによる本番公開の反映確認。

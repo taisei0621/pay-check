@@ -38,6 +38,9 @@ function saveLocalPayments(payments: PaymentEntity[]): void {
 export async function createEventWithParticipants(
   input: CreateEventInput
 ): Promise<{ success: boolean; eventId?: string; error?: string }> {
+  const payerName = input.payer_name?.trim() || null;
+  const paymentDestination = input.payment_destination?.trim() || null;
+
   // Supabase未設定時はローカルストレージモックで動作（リロード保持対応）
   if (!isSupabaseConfigured) {
     const eventId = crypto.randomUUID();
@@ -47,6 +50,8 @@ export async function createEventWithParticipants(
       id: eventId,
       title: input.title.trim(),
       amount_per_person: input.amount_per_person,
+      payer_name: payerName,
+      payment_destination: paymentDestination,
       created_at: now,
       updated_at: now,
     };
@@ -80,6 +85,8 @@ export async function createEventWithParticipants(
       .insert({
         title: input.title.trim(),
         amount_per_person: input.amount_per_person,
+        payer_name: payerName,
+        payment_destination: paymentDestination,
       })
       .select('id')
       .single<{ id: string }>();

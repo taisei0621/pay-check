@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { validateEventInput, calculatePaymentSummary } from '../lib/utils/payment-calc';
+import {
+  validateEventInput,
+  calculatePaymentSummary,
+  generateShareMessage,
+} from '../lib/utils/payment-calc';
 import { PaymentEntity } from '../types/database';
 
 describe('payment-calc', () => {
@@ -115,6 +119,40 @@ describe('payment-calc', () => {
       expect(summary.totalCollectedAmount).toBe(0);
       expect(summary.remainingAmount).toBe(0);
       expect(summary.progressPercentage).toBe(0);
+    });
+  });
+
+  describe('generateShareMessage', () => {
+    it('立替者と支払い先が設定されている場合、全ての情報が含まれた案内文が生成されること', () => {
+      const message = generateShareMessage({
+        title: '同期飲み会',
+        amount_per_person: 4500,
+        payer_name: '田中',
+        payment_destination: '田中のPayPayまたは現金',
+        eventUrl: 'https://pay-check-phi.vercel.app/events/xyz',
+      });
+
+      expect(message).toContain('【同期飲み会の集金案内】');
+      expect(message).toContain('立替者: 田中');
+      expect(message).toContain('金額: 1人 4,500円');
+      expect(message).toContain('集金・支払い先: 田中のPayPayまたは現金');
+      expect(message).toContain('https://pay-check-phi.vercel.app/events/xyz');
+    });
+
+    it('立替者と支払い先が省略されている場合、基本情報のみの案内文が生成されること', () => {
+      const message = generateShareMessage({
+        title: 'フットサルコート代',
+        amount_per_person: 1500,
+        payer_name: null,
+        payment_destination: undefined,
+        eventUrl: 'https://pay-check-phi.vercel.app/events/abc',
+      });
+
+      expect(message).toContain('【フットサルコート代の集金案内】');
+      expect(message).not.toContain('立替者:');
+      expect(message).not.toContain('集金・支払い先:');
+      expect(message).toContain('金額: 1人 1,500円');
+      expect(message).toContain('https://pay-check-phi.vercel.app/events/abc');
     });
   });
 });

@@ -6,9 +6,15 @@ CREATE TABLE IF NOT EXISTS public.events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     amount_per_person INTEGER NOT NULL CHECK (amount_per_person >= 0),
+    payer_name TEXT,                  -- 立替者（誰が支払ったか）
+    payment_destination TEXT,         -- 集金先・送金先（誰にどう集めるか）
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- 既存テーブルがある場合のマイグレーション用
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payer_name TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payment_destination TEXT;
 
 -- 3. 参加者・支払い管理テーブル (payments)
 CREATE TABLE IF NOT EXISTS public.payments (

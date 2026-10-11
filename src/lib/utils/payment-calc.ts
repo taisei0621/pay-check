@@ -68,3 +68,37 @@ export function calculatePaymentSummary(
     progressPercentage,
   };
 }
+
+/**
+ * LINEやSNSで共有する集金案内文のパラメータ
+ */
+export interface ShareMessageParams {
+  title: string;
+  amount_per_person: number;
+  payer_name?: string | null;
+  payment_destination?: string | null;
+  eventUrl: string;
+}
+
+/**
+ * 集金案内用の共有テキストを生成する純粋関数
+ */
+export function generateShareMessage(params: ShareMessageParams): string {
+  const lines: string[] = [`【${params.title}の集金案内】`];
+
+  if (params.payer_name && params.payer_name.trim().length > 0) {
+    lines.push(`立替者: ${params.payer_name.trim()}`);
+  }
+
+  lines.push(`金額: 1人 ${params.amount_per_person.toLocaleString()}円`);
+
+  if (params.payment_destination && params.payment_destination.trim().length > 0) {
+    lines.push(`集金・支払い先: ${params.payment_destination.trim()}`);
+  }
+
+  lines.push('');
+  lines.push('集金状況の確認・支払い完了はこちら:');
+  lines.push(params.eventUrl);
+
+  return lines.join('\n');
+}
