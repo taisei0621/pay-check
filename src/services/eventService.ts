@@ -41,6 +41,21 @@ export async function createEventWithParticipants(
   const payerName = input.payer_name?.trim() || null;
   const paymentDestination = input.payment_destination?.trim() || null;
 
+  // participant_items または participant_names から正規化
+  const participantList: { name: string; custom_amount: number | null }[] = input.participant_items
+    ? input.participant_items
+        .map((item) => ({
+          name: item.name.trim(),
+          custom_amount:
+            typeof item.custom_amount === 'number' && item.custom_amount >= 0
+              ? item.custom_amount
+              : null,
+        }))
+        .filter((item) => item.name.length > 0)
+    : (input.participant_names || [])
+        .map((name) => ({ name: name.trim(), custom_amount: null }))
+        .filter((item) => item.name.length > 0);
+
   // Supabase未設定時はローカルストレージモックで動作（リロード保持対応）
   if (!isSupabaseConfigured) {
     const eventId = crypto.randomUUID();
@@ -56,18 +71,16 @@ export async function createEventWithParticipants(
       updated_at: now,
     };
 
-    const newPayments: PaymentEntity[] = input.participant_names
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0)
-      .map((participant_name) => ({
-        id: crypto.randomUUID(),
-        event_id: eventId,
-        participant_name,
-        is_paid: false,
-        paid_at: null,
-        created_at: now,
-        updated_at: now,
-      }));
+    const newPayments: PaymentEntity[] = participantList.map((p) => ({
+      id: crypto.randomUUID(),
+      event_id: eventId,
+      participant_name: p.name,
+      custom_amount: p.custom_amount,
+      is_paid: false,
+      paid_at: null,
+      created_at: now,
+      updated_at: now,
+    }));
 
     const events = getLocalEvents();
     saveLocalEvents([...events, newEvent]);
@@ -98,14 +111,12 @@ export async function createEventWithParticipants(
     const eventId = eventData.id;
 
     // 2. 参加者登録
-    const participants = input.participant_names
-      .map((name) => name.trim())
-      .filter((name) => name.length > 0)
-      .map((participant_name) => ({
-        event_id: eventId,
-        participant_name,
-        is_paid: false,
-      }));
+    const participants = participantList.map((p) => ({
+      event_id: eventId,
+      participant_name: p.name,
+      custom_amount: p.custom_amount,
+      is_paid: false,
+    }));
 
     if (participants.length > 0) {
       const { error: paymentsError } = await supabase

@@ -8,11 +8,26 @@ import { PaymentEntity } from '../types/database';
 
 describe('payment-calc', () => {
   describe('validateEventInput', () => {
-    it('正常な入力値の場合、isValidがtrueとなること', () => {
+    it('正常な入力値（participant_names）の場合、isValidがtrueとなること', () => {
       const input = {
         title: '送別会',
         amount_per_person: 3000,
         participant_names: ['田中', '佐藤', '鈴木'],
+      };
+
+      const result = validateEventInput(input);
+      expect(result.isValid).toBe(true);
+      expect(Object.keys(result.errors)).toHaveLength(0);
+    });
+
+    it('正常な入力値（participant_items）の場合、isValidがtrueとなること', () => {
+      const input = {
+        title: '送別会',
+        amount_per_person: 3000,
+        participant_items: [
+          { name: '田中', custom_amount: null },
+          { name: '佐藤', custom_amount: 2000 },
+        ],
       };
 
       const result = validateEventInput(input);
@@ -97,7 +112,7 @@ describe('payment-calc', () => {
       },
     ];
 
-    it('参加者4名（2名支払済、2名未払い）の集計が正しく計算されること', () => {
+    it('均等金額（参加者4名、2名支払済）の集計が正しく計算されること', () => {
       const summary = calculatePaymentSummary(5000, mockPayments);
 
       expect(summary.totalParticipants).toBe(4);
@@ -107,6 +122,65 @@ describe('payment-calc', () => {
       expect(summary.totalCollectedAmount).toBe(10000);
       expect(summary.remainingAmount).toBe(10000);
       expect(summary.progressPercentage).toBe(50);
+    });
+
+    it('傾斜金額（個別金額指定を含む参加者）の集計が正確に計算されること', () => {
+      const tieredPayments: PaymentEntity[] = [
+        {
+          id: 'p1',
+          event_id: 'e1',
+          participant_name: '一般参加A',
+          custom_amount: null, // 基本金額 3000円
+          is_paid: true,
+          paid_at: '2026-10-16T10:00:00Z',
+          created_at: '2026-10-16T09:00:00Z',
+          updated_at: '2026-10-16T10:00:00Z',
+        },
+        {
+          id: 'p2',
+          event_id: 'e1',
+          participant_name: '遅刻者B',
+          custom_amount: 2000, // 個別設定 2000円
+          is_paid: true,
+          paid_at: '2026-10-16T10:00:00Z',
+          created_at: '2026-10-16T09:00:00Z',
+          updated_at: '2026-10-16T10:00:00Z',
+        },
+        {
+          id: 'p3',
+          event_id: 'e1',
+          participant_name: '先輩C',
+          custom_amount: 5000, // 個別設定 5000円
+          is_paid: false,
+          paid_at: null,
+          created_at: '2026-10-16T09:00:00Z',
+          updated_at: '2026-10-16T09:00:00Z',
+        },
+        {
+          id: 'p4',
+          event_id: 'e1',
+          participant_name: '一般参加D',
+          custom_amount: null, // 基本金額 3000円
+          is_paid: false,
+          paid_at: null,
+          created_at: '2026-10-16T09:00:00Z',
+          updated_at: '2026-10-16T09:00:00Z',
+        },
+      ];
+
+      // 目標総額: 3000 + 2000 + 5000 + 3000 = 13000円
+      // 回収済: 3000 + 2000 = 5000円
+      // 未回収: 5000 + 3000 = 8000円
+      // 進捗率: 5000 / 13000 = 38%
+      const summary = calculatePaymentSummary(3000, tieredPayments);
+
+      expect(summary.totalParticipants).toBe(4);
+      expect(summary.paidCount).toBe(2);
+      expect(summary.unpaidCount).toBe(2);
+      expect(summary.totalExpectedAmount).toBe(13000);
+      expect(summary.totalCollectedAmount).toBe(5000);
+      expect(summary.remainingAmount).toBe(8000);
+      expect(summary.progressPercentage).toBe(38);
     });
 
     it('参加者0名の場合、進捗率0%で正常に集計されること', () => {

@@ -237,6 +237,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
           payments={eventData.payments}
           onToggleStatus={handleToggleStatus}
           loadingId={togglingId}
+          baseAmount={eventData.amount_per_person}
         />
 
         {/* フッターヒント */}

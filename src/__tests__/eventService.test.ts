@@ -58,8 +58,44 @@ describe('eventService', () => {
           payment_destination: 'PayPay ID: tanaka123',
         });
         expect(mockPaymentsInsert).toHaveBeenCalledWith([
-          { event_id: 'test-event-uuid', participant_name: '佐藤', is_paid: false },
-          { event_id: 'test-event-uuid', participant_name: '田中', is_paid: false },
+          { event_id: 'test-event-uuid', participant_name: '佐藤', custom_amount: null, is_paid: false },
+          { event_id: 'test-event-uuid', participant_name: '田中', custom_amount: null, is_paid: false },
+        ]);
+      });
+    });
+
+    it('participant_itemsのcustom_amountが正しく渡されて登録されること', () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: { id: 'test-event-uuid-2' },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockEventsInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockPaymentsInsert = vi.fn().mockResolvedValue({ error: null });
+
+      (supabase.from as unknown as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'events') {
+          return { insert: mockEventsInsert };
+        }
+        if (table === 'payments') {
+          return { insert: mockPaymentsInsert };
+        }
+        return {};
+      });
+
+      return createEventWithParticipants({
+        title: '傾斜飲み会',
+        amount_per_person: 3500,
+        participant_items: [
+          { name: '山田', custom_amount: null },
+          { name: '木村', custom_amount: 2000 },
+        ],
+      }).then((result) => {
+        expect(result.success).toBe(true);
+        expect(result.eventId).toBe('test-event-uuid-2');
+        expect(mockPaymentsInsert).toHaveBeenCalledWith([
+          { event_id: 'test-event-uuid-2', participant_name: '山田', custom_amount: null, is_paid: false },
+          { event_id: 'test-event-uuid-2', participant_name: '木村', custom_amount: 2000, is_paid: false },
         ]);
       });
     });

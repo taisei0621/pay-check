@@ -26,9 +26,14 @@ export function validateEventInput(input: CreateEventInput): ValidationResult {
     errors.amount = '0円以上の金額を入力してください';
   }
 
-  const validNames = input.participant_names
-    .map((name) => name.trim())
-    .filter((name) => name.length > 0);
+  // participant_items または participant_names のいずれかから有効な名前を抽出
+  const validNames = (
+    input.participant_items
+      ? input.participant_items.map((item) => item.name.trim())
+      : input.participant_names
+      ? input.participant_names.map((name) => name.trim())
+      : []
+  ).filter((name) => name.length > 0);
 
   if (validNames.length === 0) {
     errors.participants = '1名以上の参加者を入力してください';
@@ -42,6 +47,7 @@ export function validateEventInput(input: CreateEventInput): ValidationResult {
 
 /**
  * 参加者の集金サマリー（回収済み金額・未回収額・進捗率等）を計算する純粋関数
+ * 個別金額（custom_amount）が設定されている場合はそれを優先し、未設定の場合は基本金額を使用
  */
 export function calculatePaymentSummary(
   amountPerPerson: number,
@@ -52,11 +58,26 @@ export function calculatePaymentSummary(
   const unpaidCount = totalParticipants - paidCount;
 
   const safeAmount = Math.max(0, amountPerPerson);
-  const totalExpectedAmount = safeAmount * totalParticipants;
-  const totalCollectedAmount = safeAmount * paidCount;
-  const remainingAmount = safeAmount * unpaidCount;
-  const progressPercentage =
-    totalParticipants > 0 ? Math.round((paidCount / totalParticipants) * 100) : 0;
+
+  const getAmount = (p: PaymentEntity): number => {
+    if (typeof p.custom_amount === 'number' && p.custom_amount >= 0) {
+      return p.custom_amount;
+    }
+    return safeAmount;
+  };
+
+  const totalExpectedAmount = payments.reduce((sum, p) => sum + getAmount(p), 0);
+  const totalCollectedAmount = payments
+    .filter((p) => p.is_paid)
+    .reduce((sum, p) => sum + getAmount(p), 0);
+  const remainingAmount = Math.max(0, totalExpectedAmount - totalCollectedAmount);
+
+  let progressPercentage = 0;
+  if (totalExpectedAmount > 0) {
+    progressPercentage = Math.round((totalCollectedAmount / totalExpectedAmount) * 100);
+  } else if (totalParticipants > 0 && paidCount === totalParticipants) {
+    progressPercentage = 100;
+  }
 
   return {
     totalParticipants,

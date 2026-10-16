@@ -21,11 +21,15 @@ CREATE TABLE IF NOT EXISTS public.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
     participant_name TEXT NOT NULL,
+    custom_amount INTEGER,            -- 個別指定金額（傾斜金額）
     is_paid BOOLEAN NOT NULL DEFAULT false,
     paid_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- 既存テーブルがある場合のマイグレーション用
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS custom_amount INTEGER;
 
 -- 4. インデックス作成 (イベントIDでの参照を高速化)
 CREATE INDEX IF NOT EXISTS idx_payments_event_id ON public.payments(event_id);

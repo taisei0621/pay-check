@@ -2,18 +2,20 @@
 
 import React from 'react';
 import { PaymentEntity } from '@/types/database';
-import { Check, Clock, Loader2, Sparkles } from 'lucide-react';
+import { Check, Clock, Loader2, Sparkles, Tag } from 'lucide-react';
 
 interface ParticipantListProps {
   payments: PaymentEntity[];
   onToggleStatus: (paymentId: string, currentStatus: boolean) => Promise<void>;
   loadingId: string | null;
+  baseAmount?: number;
 }
 
 export const ParticipantList: React.FC<ParticipantListProps> = ({
   payments,
   onToggleStatus,
   loadingId,
+  baseAmount,
 }) => {
   if (payments.length === 0) {
     return (
@@ -42,6 +44,10 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
       <ul className="divide-y divide-slate-100">
         {payments.map((payment) => {
           const isLoading = loadingId === payment.id;
+          const hasCustomAmount =
+            typeof payment.custom_amount === 'number' &&
+            payment.custom_amount >= 0 &&
+            (baseAmount === undefined || payment.custom_amount !== baseAmount);
 
           return (
             <li
@@ -63,9 +69,17 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                   {payment.participant_name.slice(0, 1)}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-slate-900 text-base truncate">
-                    {payment.participant_name}
-                  </p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-bold text-slate-900 text-base truncate">
+                      {payment.participant_name}
+                    </p>
+                    {hasCustomAmount && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800">
+                        <Tag className="w-2.5 h-2.5 mr-0.5" />
+                        ¥{payment.custom_amount?.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-400 font-medium flex items-center">
                     {payment.is_paid ? (
                       <span className="text-emerald-600 font-semibold flex items-center">

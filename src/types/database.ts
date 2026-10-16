@@ -19,17 +19,25 @@ export interface PaymentEntity {
   id: string;
   event_id: string;
   participant_name: string;
+  custom_amount?: number | null;        // 個別指定金額（傾斜金額）
   is_paid: boolean;
   paid_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
+/** 参加者入力アイテム */
+export interface ParticipantInputItem {
+  name: string;
+  custom_amount?: number | null;
+}
+
 /** イベント作成入力パラメータ */
 export interface CreateEventInput {
   title: string;
   amount_per_person: number;
-  participant_names: string[];
+  participant_names?: string[];          // 文字列配列（後方互換）
+  participant_items?: ParticipantInputItem[]; // 詳細指定アイテム配列
   payer_name?: string;                  // 立替者名（任意）
   payment_destination?: string;         // 集金先情報（任意）
 }
