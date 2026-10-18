@@ -53,6 +53,7 @@ describe('eventService', () => {
         expect(result.eventId).toBe('test-event-uuid');
         expect(mockEventsInsert).toHaveBeenCalledWith({
           title: '歓迎会',
+          total_amount: null,
           amount_per_person: 4000,
           payer_name: '田中',
           payment_destination: 'PayPay ID: tanaka123',
@@ -61,6 +62,44 @@ describe('eventService', () => {
           { event_id: 'test-event-uuid', participant_name: '佐藤', custom_amount: null, is_paid: false },
           { event_id: 'test-event-uuid', participant_name: '田中', custom_amount: null, is_paid: false },
         ]);
+      });
+    });
+
+    it('total_amountが指定された場合、eventsテーブルにtotal_amountが渡されること', () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: { id: 'test-event-uuid-total' },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockEventsInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockPaymentsInsert = vi.fn().mockResolvedValue({ error: null });
+
+      (supabase.from as unknown as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'events') {
+          return { insert: mockEventsInsert };
+        }
+        if (table === 'payments') {
+          return { insert: mockPaymentsInsert };
+        }
+        return {};
+      });
+
+      return createEventWithParticipants({
+        title: 'フットサル',
+        total_amount: 15000,
+        amount_per_person: 3000,
+        payer_name: '鈴木',
+        participant_names: ['鈴木', '佐藤', '田中', '高橋', '渡辺'],
+      }).then((result) => {
+        expect(result.success).toBe(true);
+        expect(result.eventId).toBe('test-event-uuid-total');
+        expect(mockEventsInsert).toHaveBeenCalledWith({
+          title: 'フットサル',
+          total_amount: 15000,
+          amount_per_person: 3000,
+          payer_name: '鈴木',
+          payment_destination: null,
+        });
       });
     });
 

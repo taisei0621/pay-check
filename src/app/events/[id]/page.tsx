@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { EventWithPayments } from '@/types/database';
 import { getEventWithPayments, togglePaymentStatus } from '@/services/eventService';
-import { calculatePaymentSummary, generateShareMessage } from '@/lib/utils/payment-calc';
+import { calculateSettlement, generateShareMessage } from '@/lib/utils/payment-calc';
 import { SummaryCard } from '@/components/SummaryCard';
 import { ParticipantList } from '@/components/ParticipantList';
 import { PayerInfoCard } from '@/components/PayerInfoCard';
@@ -15,7 +15,6 @@ import {
   RefreshCw,
   AlertCircle,
   Loader2,
-  Calendar,
   Share2,
 } from 'lucide-react';
 
@@ -51,14 +50,14 @@ export default function EventDetailPage({ params }: EventPageProps) {
     fetchEvent();
   }, [fetchEvent]);
 
-  // 支払いステータス切り替えハンドラ (全層貫通機能)
+  // 支払いステータス切り替えハンドラ
   const handleToggleStatus = async (paymentId: string, currentStatus: boolean) => {
     if (!eventData) return;
 
     setTogglingId(paymentId);
     const newStatus = !currentStatus;
 
-    // 1. 楽観的UI更新 (即座にUIを反転)
+    // 楽観的UI更新
     const previousPayments = [...eventData.payments];
     const updatedPayments = eventData.payments.map((p) =>
       p.id === paymentId
@@ -71,11 +70,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
     );
     setEventData({ ...eventData, payments: updatedPayments });
 
-    // 2. DB (Supabase) 永続化
+    // DB永続化
     const result = await togglePaymentStatus(paymentId, newStatus);
 
     if (!result.success) {
-      // 失敗時はロールバック
       setEventData({ ...eventData, payments: previousPayments });
       alert(result.error || '更新に失敗しました');
     }
@@ -100,6 +98,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
     const message = generateShareMessage({
       title: eventData.title,
+      total_amount: eventData.total_amount,
       amount_per_person: eventData.amount_per_person,
       payer_name: eventData.payer_name,
       payment_destination: eventData.payment_destination,
@@ -120,7 +119,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
       <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-3">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          <p className="text-slate-600 text-sm font-semibold">集金データを読み込み中...</p>
+          <p className="text-slate-600 text-sm font-semibold">読み込み中...</p>
         </div>
       </main>
     );
@@ -153,55 +152,54 @@ export default function EventDetailPage({ params }: EventPageProps) {
     );
   }
 
-  // 集計サマリーの計算（純粋関数）
-  const summary = calculatePaymentSummary(eventData.amount_per_person, eventData.payments);
+  // 精算サマリー計算（誰が誰にいくら送金するか）
+  const settlement = calculateSettlement(eventData, eventData.payments);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/20 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* ナビゲーションバー */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <Link
             href="/"
-            className="inline-flex items-center text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 transition"
+            className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
-            新規イベント作成
+            トップへ
           </Link>
 
           <div className="flex items-center space-x-2">
-            {/* LINE案内文コピーボタン */}
+            {/* LINE案内文コピー */}
             <button
               onClick={handleCopyShareMessage}
-              className="inline-flex items-center px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
-              title="LINEやチャットで使える集金案内テキストをコピー"
+              className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
             >
               {copiedMessage ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
-                  <span>案内文コピー完了</span>
+                  <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                  <span>案内文コピー済</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                  <span>LINE案内文コピー</span>
+                  <Share2 className="w-3.5 h-3.5 mr-1" />
+                  <span>案内文コピー</span>
                 </>
               )}
             </button>
 
-            {/* URLコピーボタン */}
+            {/* URLコピー */}
             <button
               onClick={handleCopyUrl}
-              className="inline-flex items-center px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
             >
               {copiedUrl ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1.5 text-blue-600 stroke-[2.5]" />
-                  <span className="text-blue-600">URLコピー完了</span>
+                  <Check className="w-3.5 h-3.5 mr-1 text-blue-600 stroke-[3]" />
+                  <span className="text-blue-600">URLコピー済</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                  <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
                   <span>URLコピー</span>
                 </>
               )}
@@ -209,42 +207,33 @@ export default function EventDetailPage({ params }: EventPageProps) {
           </div>
         </div>
 
-        {/* イベントタイトルヘッダー */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-lg shadow-slate-200/50 border border-slate-100 mb-6">
-          <div className="flex items-center text-xs font-bold text-blue-600 uppercase tracking-wider mb-1.5">
-            <Calendar className="w-3.5 h-3.5 mr-1.5" />
-            集金イベント
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 break-words tracking-tight">
+        {/* イベント名 */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-slate-200/50 border border-slate-100 mb-5">
+          <h1 className="text-2xl font-black text-slate-900 break-words tracking-tight">
             {eventData.title}
           </h1>
         </div>
 
-        {/* 立替者・集金先案内カード（新規） */}
-        <PayerInfoCard
-          payerName={eventData.payer_name}
-          paymentDestination={eventData.payment_destination}
-        />
+        {/* 集金先情報カード */}
+        {eventData.payment_destination && (
+          <PayerInfoCard
+            payerName={eventData.payer_name}
+            paymentDestination={eventData.payment_destination}
+          />
+        )}
 
-        {/* 集金進捗サマリーカード */}
-        <SummaryCard
-          summary={summary}
-          amountPerPerson={eventData.amount_per_person}
-        />
+        {/* 精算状況サマリー */}
+        <SummaryCard settlement={settlement} />
 
-        {/* 参加者一覧 & 未払い/支払済トグル (全層貫通機能) */}
+        {/* 送金指示・参加者一覧 */}
         <ParticipantList
           payments={eventData.payments}
+          transfers={settlement.transfers}
+          payerName={settlement.payerName}
+          baseAmount={settlement.perPersonAmount}
           onToggleStatus={handleToggleStatus}
           loadingId={togglingId}
-          baseAmount={eventData.amount_per_person}
         />
-
-        {/* フッターヒント */}
-        <div className="mt-8 text-center text-xs text-slate-400 space-y-1">
-          <p>「LINE案内文コピー」で参加者全員に振込先とURLを一括共有できます。</p>
-          <p>このページをブックマークしておけば、いつでも受取状況を更新できます。</p>
-        </div>
       </div>
     </main>
   );

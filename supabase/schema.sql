@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
+    total_amount INTEGER,             -- 立替総額（例: 12,000円）
     amount_per_person INTEGER NOT NULL CHECK (amount_per_person >= 0),
     payer_name TEXT,                  -- 立替者（誰が支払ったか）
     payment_destination TEXT,         -- 集金先・送金先（誰にどう集めるか）
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.events (
 );
 
 -- 既存テーブルがある場合のマイグレーション用
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS total_amount INTEGER;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payer_name TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payment_destination TEXT;
 

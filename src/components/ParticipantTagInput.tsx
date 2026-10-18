@@ -117,16 +117,14 @@ export const ParticipantTagInput: React.FC<ParticipantTagInputProps> = ({
       <div className="flex items-center justify-between mb-1.5">
         <label className="flex items-center text-sm font-bold text-slate-700">
           <Users className="w-4 h-4 mr-1.5 text-blue-600" />
-          参加者リスト（タグで追加） <span className="text-red-500 ml-1 text-xs">*</span>
+          参加者 <span className="text-red-500 ml-1 text-xs">*</span>
         </label>
-        <span className="text-xs font-semibold text-slate-400">
-          合計 {participants.length} 名
-        </span>
+        {participants.length > 0 && (
+          <span className="text-xs font-semibold text-slate-500">
+            {participants.length}名
+          </span>
+        )}
       </div>
-
-      <p className="text-xs text-slate-400 mb-3 leading-relaxed">
-        名前を入力して「追加」またはEnterキーで登録。LINE等のメンバー一覧を貼り付けると自動で複数人登録されます。
-      </p>
 
       {/* 入力フィールド＋追加ボタン */}
       <div className="flex gap-2 mb-3">
@@ -137,7 +135,7 @@ export const ParticipantTagInput: React.FC<ParticipantTagInputProps> = ({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder="例: 田中太郎（Enterで追加）"
+            placeholder="参加者の名前を入力（Enterで追加）"
             className={`w-full px-4 py-2.5 rounded-xl border text-sm ${
               error ? 'border-red-500 bg-red-50/20' : 'border-slate-200 bg-slate-50/50'
             } focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all text-slate-900`}
@@ -243,7 +241,7 @@ export const ParticipantTagInput: React.FC<ParticipantTagInputProps> = ({
         </div>
       ) : (
         <div className="p-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
-          まだ参加者が追加されていません。上の入力欄から追加してください。
+          参加者を追加してください
         </div>
       )}
     </div>

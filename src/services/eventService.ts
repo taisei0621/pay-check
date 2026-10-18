@@ -64,6 +64,7 @@ export async function createEventWithParticipants(
     const newEvent: EventEntity = {
       id: eventId,
       title: input.title.trim(),
+      total_amount: input.total_amount ?? null,
       amount_per_person: input.amount_per_person,
       payer_name: payerName,
       payment_destination: paymentDestination,
@@ -97,6 +98,7 @@ export async function createEventWithParticipants(
       .from('events')
       .insert({
         title: input.title.trim(),
+        total_amount: input.total_amount ?? null,
         amount_per_person: input.amount_per_person,
         payer_name: payerName,
         payment_destination: paymentDestination,
