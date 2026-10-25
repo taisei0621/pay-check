@@ -70,6 +70,25 @@ export interface PaymentTransferItem {
   isPayer: boolean;                     // 立替者本人かどうか
 }
 
+/** 端数丸め設定の型 */
+export type RoundingUnit = 1 | 100 | 500 | 1000;
+export type RoundingMethod = 'ceil' | 'floor' | 'round';
+
+export interface RoundingOptions {
+  unit?: RoundingUnit;
+  method?: RoundingMethod;
+}
+
+/** 決済種別とアクション情報 */
+export type PaymentMethodType = 'paypay_link' | 'paypay_id' | 'bank' | 'other';
+
+export interface PaymentTypeInfo {
+  type: PaymentMethodType;
+  label: string;
+  actionUrl: string | null;
+  copyValue: string | null;
+}
+
 /** 精算全体のサマリー */
 export interface SettlementSummary {
   totalAmount: number;                  // 立替総額
@@ -83,4 +102,7 @@ export interface SettlementSummary {
   remainingCount: number;               // 未回収人数
   transfers: PaymentTransferItem[];     // 送金指示リスト
   progressPercentage: number;           // 進捗率
+  roundingUnit?: RoundingUnit;          // 丸め単位
+  roundingMethod?: RoundingMethod;      // 丸め方式
+  payerDiff?: number;                   // 端数丸めによる立替者の過不足差額
 }

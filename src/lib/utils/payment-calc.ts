@@ -5,6 +5,10 @@ import {
   SettlementSummary,
   PaymentTransferItem,
   EventEntity,
+  RoundingOptions,
+  RoundingUnit,
+  RoundingMethod,
+  PaymentTypeInfo,
 } from '@/types/database';
 
 /**
@@ -59,14 +63,43 @@ export function validateEventInput(input: CreateEventInput): ValidationResult {
 }
 
 /**
+ * 金額を指定された単位と方式で丸める純粋関数
+ */
+export function roundAmount(
+  amount: number,
+  unit: RoundingUnit = 1,
+  method: RoundingMethod = 'round'
+): number {
+  if (amount <= 0) return 0;
+  if (unit <= 1) {
+    if (method === 'ceil') return Math.ceil(amount);
+    if (method === 'floor') return Math.floor(amount);
+    return Math.round(amount);
+  }
+
+  const factor = amount / unit;
+  let roundedFactor = Math.round(factor);
+  if (method === 'ceil') {
+    roundedFactor = Math.ceil(factor);
+  } else if (method === 'floor') {
+    roundedFactor = Math.floor(factor);
+  }
+
+  return roundedFactor * unit;
+}
+
+/**
  * 誰が誰にいくら払うかの精算サマリーを算出する純粋関数
  */
 export function calculateSettlement(
   event: Pick<EventEntity, 'amount_per_person' | 'total_amount' | 'payer_name'>,
-  payments: readonly PaymentEntity[]
+  payments: readonly PaymentEntity[],
+  roundingOptions?: RoundingOptions
 ): SettlementSummary {
   const totalCount = payments.length;
   const payerName = event.payer_name?.trim() || null;
+  const unit = roundingOptions?.unit ?? 1;
+  const method = roundingOptions?.method ?? 'round';
 
   // 1人あたりの基本金額（total_amount があれば頭割り、なければ amount_per_person）
   let perPersonAmount = Math.max(0, event.amount_per_person);
@@ -75,7 +108,10 @@ export function calculateSettlement(
     event.total_amount > 0 &&
     totalCount > 0
   ) {
-    perPersonAmount = Math.round(event.total_amount / totalCount);
+    const rawPerPerson = event.total_amount / totalCount;
+    perPersonAmount = roundAmount(rawPerPerson, unit, method);
+  } else if (unit > 1) {
+    perPersonAmount = roundAmount(perPersonAmount, unit, method);
   }
 
   const calculatedTotalAmount =
@@ -110,6 +146,10 @@ export function calculateSettlement(
     };
   });
 
+  // 全参加者（立替者含む）の負担額合計と、立替総額との差額
+  const totalCharged = transfers.reduce((sum, t) => sum + t.amount, 0);
+  const payerDiff = totalCharged - calculatedTotalAmount;
+
   // 回収対象（立替者本人以外の参加者）
   const collectTargets = transfers.filter((t) => !t.isPayer);
   const collectTargetCount = collectTargets.length;
@@ -141,6 +181,75 @@ export function calculateSettlement(
     remainingCount,
     transfers,
     progressPercentage,
+    roundingUnit: unit,
+    roundingMethod: method,
+    payerDiff,
+  };
+}
+
+/**
+ * 集金先テキストから決済種別およびアクション情報を判定する純粋関数
+ */
+export function detectPaymentType(destination?: string | null): PaymentTypeInfo {
+  const trimmed = destination?.trim() || '';
+  if (!trimmed) {
+    return {
+      type: 'other',
+      label: '支払い方法',
+      actionUrl: null,
+      copyValue: null,
+    };
+  }
+
+  const lower = trimmed.toLowerCase();
+
+  // URL形式（http://, https://, または paypay.me）
+  const isUrl = lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('paypay.me/');
+  if (isUrl) {
+    const fullUrl = lower.startsWith('http') ? trimmed : `https://${trimmed}`;
+    const isPayPay = lower.includes('paypay');
+    return {
+      type: isPayPay ? 'paypay_link' : 'other',
+      label: isPayPay ? 'PayPayで送金する' : '送金リンクを開く',
+      actionUrl: fullUrl,
+      copyValue: fullUrl,
+    };
+  }
+
+  // PayPay ID形式
+  if (lower.includes('paypay')) {
+    // 例: PayPay ID: tanaka123 や PayPay: tanaka123 など
+    const extractedId = trimmed.replace(/^paypay\s*(id)?\s*[:：\s]*/i, '').trim();
+    return {
+      type: 'paypay_id',
+      label: 'PayPay ID',
+      actionUrl: null,
+      copyValue: extractedId || trimmed,
+    };
+  }
+
+  // 銀行口座形式
+  const isBank =
+    lower.includes('銀行') ||
+    lower.includes('口座') ||
+    lower.includes('支店') ||
+    lower.includes('普通') ||
+    lower.includes('当座');
+
+  if (isBank) {
+    return {
+      type: 'bank',
+      label: '振込口座',
+      actionUrl: null,
+      copyValue: trimmed,
+    };
+  }
+
+  return {
+    type: 'other',
+    label: '支払い先',
+    actionUrl: null,
+    copyValue: trimmed,
   };
 }
 

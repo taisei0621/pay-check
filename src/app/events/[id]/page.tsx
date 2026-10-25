@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
-import { EventWithPayments } from '@/types/database';
+import { EventWithPayments, RoundingOptions } from '@/types/database';
 import { getEventWithPayments, togglePaymentStatus } from '@/services/eventService';
 import { calculateSettlement, generateShareMessage } from '@/lib/utils/payment-calc';
 import { SummaryCard } from '@/components/SummaryCard';
 import { ParticipantList } from '@/components/ParticipantList';
-import { PayerInfoCard } from '@/components/PayerInfoCard';
+import { PaymentActionCard } from '@/components/PaymentActionCard';
+import { RoundSettingSelector } from '@/components/RoundSettingSelector';
+import { CompletionCelebration } from '@/components/CompletionCelebration';
 import {
   ArrowLeft,
   Copy,
@@ -32,6 +34,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [roundingOptions, setRoundingOptions] = useState<RoundingOptions>({
+    unit: 1,
+    method: 'round',
+  });
 
   // データ取得関数
   const fetchEvent = useCallback(async () => {
@@ -152,8 +158,9 @@ export default function EventDetailPage({ params }: EventPageProps) {
     );
   }
 
-  // 精算サマリー計算（誰が誰にいくら送金するか）
-  const settlement = calculateSettlement(eventData, eventData.payments);
+  // 精算サマリー計算（端数丸め設定を反映）
+  const settlement = calculateSettlement(eventData, eventData.payments, roundingOptions);
+  const isAllPaid = settlement.collectTargetCount > 0 && settlement.remainingAmount === 0;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/20 py-8 px-4 sm:px-6 lg:px-8">
@@ -214,13 +221,25 @@ export default function EventDetailPage({ params }: EventPageProps) {
           </h1>
         </div>
 
-        {/* 集金先情報カード */}
-        {eventData.payment_destination && (
-          <PayerInfoCard
-            payerName={eventData.payer_name}
-            paymentDestination={eventData.payment_destination}
+        {/* 全員回収完了時の祝賀演出 */}
+        {isAllPaid && (
+          <CompletionCelebration
+            payerName={settlement.payerName}
+            totalAmount={settlement.totalAmount}
           />
         )}
+
+        {/* 送金アクションカード */}
+        <PaymentActionCard
+          destination={eventData.payment_destination}
+          payerName={eventData.payer_name}
+        />
+
+        {/* 端数丸めセレクター */}
+        <RoundSettingSelector
+          currentOptions={roundingOptions}
+          onChange={setRoundingOptions}
+        />
 
         {/* 精算状況サマリー */}
         <SummaryCard settlement={settlement} />

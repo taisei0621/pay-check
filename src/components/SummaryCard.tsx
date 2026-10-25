@@ -107,6 +107,22 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           </p>
         </div>
       </div>
+
+      {/* 端数丸め差額の案内 */}
+      {settlement?.payerDiff !== undefined && settlement.payerDiff !== 0 && (
+        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span className="text-slate-500 font-medium">端数丸めによる差額</span>
+          <span
+            className={`font-bold ${
+              settlement.payerDiff > 0 ? 'text-blue-600' : 'text-amber-600'
+            }`}
+          >
+            {settlement.payerDiff > 0
+              ? `+¥${settlement.payerDiff.toLocaleString()} 立替者余剰`
+              : `-¥${Math.abs(settlement.payerDiff).toLocaleString()} 立替者負担`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

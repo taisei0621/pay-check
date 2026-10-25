@@ -4,6 +4,8 @@ import {
   calculatePaymentSummary,
   calculateSettlement,
   generateShareMessage,
+  roundAmount,
+  detectPaymentType,
 } from '../lib/utils/payment-calc';
 import { PaymentEntity } from '../types/database';
 
@@ -172,6 +174,112 @@ describe('payment-calc', () => {
       expect(message).toContain('1人あたりの金額: 3,000円');
       expect(message).toContain('集金先: PayPay ID: tanaka');
       expect(message).toContain('https://pay-check-phi.vercel.app/events/xyz');
+    });
+  });
+
+  describe('roundAmount', () => {
+    it('100円単位の切り上げ、切り捨て、四捨五入が正しく動作すること', () => {
+      expect(roundAmount(3333, 100, 'ceil')).toBe(3400);
+      expect(roundAmount(3333, 100, 'floor')).toBe(3300);
+      expect(roundAmount(3333, 100, 'round')).toBe(3300);
+      expect(roundAmount(3360, 100, 'round')).toBe(3400);
+    });
+
+    it('500円単位の切り上げ、切り捨てが正しく動作すること', () => {
+      expect(roundAmount(3333, 500, 'ceil')).toBe(3500);
+      expect(roundAmount(3333, 500, 'floor')).toBe(3000);
+    });
+  });
+
+  describe('端数丸め設定を伴う calculateSettlement', () => {
+    const threePayments: PaymentEntity[] = [
+      {
+        id: 'p1',
+        event_id: 'e1',
+        participant_name: '田中', // 立替者
+        is_paid: false,
+        paid_at: null,
+        created_at: '2026-10-25T10:00:00Z',
+        updated_at: '2026-10-25T10:00:00Z',
+      },
+      {
+        id: 'p2',
+        event_id: 'e1',
+        participant_name: '佐藤',
+        is_paid: false,
+        paid_at: null,
+        created_at: '2026-10-25T10:00:00Z',
+        updated_at: '2026-10-25T10:00:00Z',
+      },
+      {
+        id: 'p3',
+        event_id: 'e1',
+        participant_name: '鈴木',
+        is_paid: false,
+        paid_at: null,
+        created_at: '2026-10-25T10:00:00Z',
+        updated_at: '2026-10-25T10:00:00Z',
+      },
+    ];
+
+    it('10,000円で3名、100円切り上げの場合、1人3,400円となり差額+200円が算出されること', () => {
+      const settlement = calculateSettlement(
+        {
+          total_amount: 10000,
+          amount_per_person: 0,
+          payer_name: '田中',
+        },
+        threePayments,
+        { unit: 100, method: 'ceil' }
+      );
+
+      expect(settlement.perPersonAmount).toBe(3400);
+      expect(settlement.collectTargetAmount).toBe(6800); // 3400 * 2人
+      expect(settlement.payerDiff).toBe(200); // 3400 * 3人 - 10000 = +200
+    });
+
+    it('10,000円で3名、100円切り捨ての場合、1人3,300円となり差額-100円が算出されること', () => {
+      const settlement = calculateSettlement(
+        {
+          total_amount: 10000,
+          amount_per_person: 0,
+          payer_name: '田中',
+        },
+        threePayments,
+        { unit: 100, method: 'floor' }
+      );
+
+      expect(settlement.perPersonAmount).toBe(3300);
+      expect(settlement.collectTargetAmount).toBe(6600); // 3300 * 2人
+      expect(settlement.payerDiff).toBe(-100); // 3300 * 3人 - 10000 = -100
+    });
+  });
+
+  describe('detectPaymentType', () => {
+    it('PayPayリンクURLを正しく検出すること', () => {
+      const res = detectPaymentType('https://paypay.me/myqr/sample123');
+      expect(res.type).toBe('paypay_link');
+      expect(res.actionUrl).toBe('https://paypay.me/myqr/sample123');
+      expect(res.copyValue).toBe('https://paypay.me/myqr/sample123');
+    });
+
+    it('PayPay ID文字列を正しく検出すること', () => {
+      const res = detectPaymentType('PayPay ID: tanaka1234');
+      expect(res.type).toBe('paypay_id');
+      expect(res.actionUrl).toBeNull();
+      expect(res.copyValue).toBe('tanaka1234');
+    });
+
+    it('銀行口座情報を正しく検出すること', () => {
+      const res = detectPaymentType('三井住友銀行 渋谷支店 普通 1234567');
+      expect(res.type).toBe('bank');
+      expect(res.copyValue).toBe('三井住友銀行 渋谷支店 普通 1234567');
+    });
+
+    it('手渡しなどの一般的なテキストを正しく判定すること', () => {
+      const res = detectPaymentType('当日現金手渡し');
+      expect(res.type).toBe('other');
+      expect(res.copyValue).toBe('当日現金手渡し');
     });
   });
 });
