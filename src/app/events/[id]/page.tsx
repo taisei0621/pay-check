@@ -2,7 +2,12 @@
 
 import React, { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
-import { EventWithPayments, RoundingOptions } from '@/types/database';
+import {
+  EventWithPayments,
+  RoundingOptions,
+  ExpenseEntity,
+  EventPhotoEntity,
+} from '@/types/database';
 import { getEventWithPayments, togglePaymentStatus } from '@/services/eventService';
 import { calculateSettlement, generateShareMessage } from '@/lib/utils/payment-calc';
 import { SummaryCard } from '@/components/SummaryCard';
@@ -10,6 +15,10 @@ import { ParticipantList } from '@/components/ParticipantList';
 import { PaymentActionCard } from '@/components/PaymentActionCard';
 import { RoundSettingSelector } from '@/components/RoundSettingSelector';
 import { CompletionCelebration } from '@/components/CompletionCelebration';
+import { ExpenseManager } from '@/components/ExpenseManager';
+import { PhotoAlbum } from '@/components/PhotoAlbum';
+import { SlideshowModal } from '@/components/SlideshowModal';
+import { ReceiptModal } from '@/components/ReceiptModal';
 import {
   ArrowLeft,
   Copy,
@@ -18,11 +27,16 @@ import {
   AlertCircle,
   Loader2,
   Share2,
+  ListOrdered,
+  Plane,
+  Camera,
 } from 'lucide-react';
 
 interface EventPageProps {
   params: Promise<{ id: string }>;
 }
+
+type TabType = 'standard' | 'expenses' | 'photos';
 
 export default function EventDetailPage({ params }: EventPageProps) {
   const resolvedParams = use(params);
@@ -34,6 +48,9 @@ export default function EventDetailPage({ params }: EventPageProps) {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('standard');
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
   const [roundingOptions, setRoundingOptions] = useState<RoundingOptions>({
     unit: 1,
     method: 'round',
@@ -87,6 +104,18 @@ export default function EventDetailPage({ params }: EventPageProps) {
     setTogglingId(null);
   };
 
+  // 支出リスト変更ハンドラ
+  const handleExpensesChange = (newExpenses: ExpenseEntity[]) => {
+    if (!eventData) return;
+    setEventData({ ...eventData, expenses: newExpenses });
+  };
+
+  // 写真リスト変更ハンドラ
+  const handlePhotosChange = (newPhotos: EventPhotoEntity[]) => {
+    if (!eventData) return;
+    setEventData({ ...eventData, photos: newPhotos });
+  };
+
   // URL共有コピー
   const handleCopyUrl = async () => {
     try {
@@ -122,10 +151,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-4">
+      <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-3">
-          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          <p className="text-slate-600 text-sm font-semibold">読み込み中...</p>
+          <Loader2 className="w-7 h-7 text-zinc-400 animate-spin" />
+          <p className="text-zinc-400 text-xs font-mono">読み込み中...</p>
         </div>
       </main>
     );
@@ -133,22 +162,26 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   if (error || !eventData) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-lg border border-slate-100 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">エラーが発生しました</h2>
-          <p className="text-slate-600 text-sm mb-6">{error || '指定されたイベントは存在しません'}</p>
-          <div className="flex justify-center space-x-3">
+      <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <div className="bg-zinc-900 rounded-2xl p-8 max-w-md w-full border border-zinc-800 text-center">
+          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-zinc-100 mb-1">
+            イベントを読み込めませんでした
+          </h2>
+          <p className="text-zinc-400 text-xs mb-6">
+            {error || '指定されたイベントは存在しません'}
+          </p>
+          <div className="flex justify-center gap-3">
             <button
               onClick={fetchEvent}
-              className="inline-flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition cursor-pointer"
+              className="inline-flex items-center px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-xl transition cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 mr-1.5" />
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
               再試行
             </button>
             <Link
               href="/"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition"
+              className="inline-flex items-center px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold rounded-xl transition"
             >
               トップへ戻る
             </Link>
@@ -158,37 +191,41 @@ export default function EventDetailPage({ params }: EventPageProps) {
     );
   }
 
-  // 精算サマリー計算（端数丸め設定を反映）
+  // 精算サマリー計算
   const settlement = calculateSettlement(eventData, eventData.payments, roundingOptions);
   const isAllPaid = settlement.collectTargetCount > 0 && settlement.remainingAmount === 0;
+  const participantNames = eventData.payments.map((p) => p.participant_name);
+  const photos = eventData.photos || [];
+  const expenses = eventData.expenses || [];
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/20 py-8 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* ナビゲーションバー */}
         <div className="flex items-center justify-between mb-5">
           <Link
             href="/"
-            className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
+            className="inline-flex items-center text-xs font-medium text-zinc-400 hover:text-white transition"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
+            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
             トップへ
           </Link>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             {/* LINE案内文コピー */}
             <button
               onClick={handleCopyShareMessage}
-              className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium rounded-xl transition cursor-pointer"
+              title="LINEやSNS用の案内文をコピー"
             >
               {copiedMessage ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-                  <span>案内文コピー済</span>
+                  <Check className="w-3 h-3 mr-1 text-emerald-400 stroke-[3]" />
+                  <span className="text-emerald-400">案内文コピー済</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5 mr-1" />
+                  <Share2 className="w-3 h-3 mr-1 text-zinc-400" />
                   <span>案内文コピー</span>
                 </>
               )}
@@ -197,16 +234,17 @@ export default function EventDetailPage({ params }: EventPageProps) {
             {/* URLコピー */}
             <button
               onClick={handleCopyUrl}
-              className="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium rounded-xl transition cursor-pointer"
+              title="URLをコピー"
             >
               {copiedUrl ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1 text-blue-600 stroke-[3]" />
-                  <span className="text-blue-600">URLコピー済</span>
+                  <Check className="w-3 h-3 mr-1 text-emerald-400 stroke-[3]" />
+                  <span className="text-emerald-400">URLコピー済</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                  <Copy className="w-3 h-3 mr-1 text-zinc-400" />
                   <span>URLコピー</span>
                 </>
               )}
@@ -214,9 +252,12 @@ export default function EventDetailPage({ params }: EventPageProps) {
           </div>
         </div>
 
-        {/* イベント名 */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-slate-200/50 border border-slate-100 mb-5">
-          <h1 className="text-2xl font-black text-slate-900 break-words tracking-tight">
+        {/* イベントヘッダーカード */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 mb-5 shadow-sm">
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-zinc-500 block mb-1">
+            イベント名
+          </span>
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 break-words tracking-tight">
             {eventData.title}
           </h1>
         </div>
@@ -226,34 +267,140 @@ export default function EventDetailPage({ params }: EventPageProps) {
           <CompletionCelebration
             payerName={settlement.payerName}
             totalAmount={settlement.totalAmount}
+            onOpenSlideshow={() => setIsSlideshowOpen(true)}
+            hasPhotos={photos.length > 0}
           />
         )}
 
-        {/* 送金アクションカード */}
+        {/* 送金先アクションカード */}
         <PaymentActionCard
           destination={eventData.payment_destination}
           payerName={eventData.payer_name}
         />
 
-        {/* 端数丸めセレクター */}
-        <RoundSettingSelector
-          currentOptions={roundingOptions}
-          onChange={setRoundingOptions}
-        />
+        {/* タブナビゲーション */}
+        <div className="flex items-center gap-1.5 mb-5 p-1 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setActiveTab('standard')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              activeTab === 'standard'
+                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            <span>通常精算</span>
+          </button>
 
-        {/* 精算状況サマリー */}
-        <SummaryCard settlement={settlement} />
+          <button
+            type="button"
+            onClick={() => setActiveTab('expenses')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              activeTab === 'expenses'
+                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Plane className="w-3.5 h-3.5 text-emerald-400" />
+            <span>旅行相殺</span>
+            {expenses.length > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                {expenses.length}
+              </span>
+            )}
+          </button>
 
-        {/* 送金指示・参加者一覧 */}
-        <ParticipantList
-          payments={eventData.payments}
-          transfers={settlement.transfers}
-          payerName={settlement.payerName}
-          baseAmount={settlement.perPersonAmount}
-          onToggleStatus={handleToggleStatus}
-          loadingId={togglingId}
-        />
+          <button
+            type="button"
+            onClick={() => setActiveTab('photos')}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+              activeTab === 'photos'
+                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5 text-amber-400" />
+            <span>思い出アルバム</span>
+            {photos.length > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-950 text-zinc-300 border border-zinc-800 font-mono">
+                {photos.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* タブ1: 通常精算 */}
+        {activeTab === 'standard' && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* 端数丸めセレクター */}
+            <RoundSettingSelector
+              currentOptions={roundingOptions}
+              onChange={setRoundingOptions}
+            />
+
+            {/* 精算状況サマリー */}
+            <SummaryCard
+              settlement={settlement}
+              receiptImage={eventData.receipt_image}
+              onOpenReceipt={() => setIsReceiptModalOpen(true)}
+            />
+
+            {/* 送金指示・参加者一覧 */}
+            <ParticipantList
+              payments={eventData.payments}
+              transfers={settlement.transfers}
+              payerName={settlement.payerName}
+              baseAmount={settlement.perPersonAmount}
+              onToggleStatus={handleToggleStatus}
+              loadingId={togglingId}
+            />
+          </div>
+        )}
+
+        {/* タブ2: 複数立替・旅行相殺モード */}
+        {activeTab === 'expenses' && (
+          <div className="animate-in fade-in duration-200">
+            <ExpenseManager
+              eventId={eventData.id}
+              participantNames={participantNames}
+              expenses={expenses}
+              onExpensesChange={handleExpensesChange}
+            />
+          </div>
+        )}
+
+        {/* タブ3: 思い出写真アルバム */}
+        {activeTab === 'photos' && (
+          <div className="animate-in fade-in duration-200">
+            <PhotoAlbum
+              eventId={eventData.id}
+              photos={photos}
+              isUnlocked={isAllPaid}
+              progressPercentage={settlement.progressPercentage}
+              onPhotosChange={handlePhotosChange}
+              eventTitle={eventData.title}
+            />
+          </div>
+        )}
       </div>
+
+      {/* レシート全画面モーダル */}
+      {eventData.receipt_image && (
+        <ReceiptModal
+          imageUrl={eventData.receipt_image}
+          title={`${eventData.title} のレシート明細`}
+          onClose={() => setIsReceiptModalOpen(false)}
+        />
+      )}
+
+      {/* スライドショーモーダル */}
+      <SlideshowModal
+        photos={photos}
+        isOpen={isSlideshowOpen}
+        onClose={() => setIsSlideshowOpen(false)}
+        eventTitle={eventData.title}
+      />
     </main>
   );
 }

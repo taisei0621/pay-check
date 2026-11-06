@@ -11,6 +11,7 @@ export interface EventEntity {
   amount_per_person: number;            // 1人あたり基本金額
   payer_name?: string | null;           // 立替者（誰が支払ったか）
   payment_destination?: string | null;  // 集金先・送金先（誰にどう集めるか）
+  receipt_image?: string | null;        // レシート写真データ（Base64またはURL）
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +26,27 @@ export interface PaymentEntity {
   paid_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** 複数立替支出エンティティ (expensesテーブル) */
+export interface ExpenseEntity {
+  id: string;
+  event_id: string;
+  title: string;                        // 立替項目名（例: レンタカー、居酒屋）
+  amount: number;                       // 立替金額
+  payer_name: string;                   // 立替えた人
+  receipt_image?: string | null;        // レシート写真
+  created_at: string;
+}
+
+/** 思い出写真エンティティ (event_photosテーブル) */
+export interface EventPhotoEntity {
+  id: string;
+  event_id: string;
+  image_data: string;                   // 軽量圧縮された写真データ
+  caption?: string | null;              // 写真の説明
+  uploader_name?: string | null;        // 投稿者名
+  created_at: string;
 }
 
 /** 参加者入力アイテム */
@@ -42,11 +64,37 @@ export interface CreateEventInput {
   participant_items?: ParticipantInputItem[]; // 詳細指定アイテム配列
   payer_name?: string;                  // 立替者名（任意）
   payment_destination?: string;         // 集金先情報（任意）
+  receipt_image?: string | null;        // レシート写真
 }
 
-/** イベント詳細・支払い一覧を含む集約モデル */
+/** イベント詳細・支払い・立替・写真を含む完全モデル */
 export interface EventWithPayments extends EventEntity {
   payments: PaymentEntity[];
+  expenses?: ExpenseEntity[];
+  photos?: EventPhotoEntity[];
+}
+
+/** 最小送金ルートアイテム */
+export interface OptimalTransfer {
+  from: string;
+  to: string;
+  amount: number;
+}
+
+/** 参加者ごとの純貸借情報 */
+export interface ParticipantBalance {
+  name: string;
+  paidTotal: number;                    // 立替えた合計額
+  shareTotal: number;                   // 本来負担すべき合計額
+  netBalance: number;                   // 差額（プラス: 受取、マイナス: 支払）
+}
+
+/** 複数立替・相殺精算サマリー */
+export interface MultiExpenseSummary {
+  totalExpenses: number;                // 旅行全体の総支出額
+  perPersonAmount: number;              // 1人あたり平均負担額
+  participantBalances: ParticipantBalance[];
+  optimalTransfers: OptimalTransfer[];  // 最小送金ルート
 }
 
 /** 集金サマリー計算結果 */

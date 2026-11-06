@@ -57,6 +57,7 @@ describe('eventService', () => {
           amount_per_person: 4000,
           payer_name: '田中',
           payment_destination: 'PayPay ID: tanaka123',
+          receipt_image: null,
         });
         expect(mockPaymentsInsert).toHaveBeenCalledWith([
           { event_id: 'test-event-uuid', participant_name: '佐藤', custom_amount: null, is_paid: false },
@@ -99,6 +100,7 @@ describe('eventService', () => {
           amount_per_person: 3000,
           payer_name: '鈴木',
           payment_destination: null,
+          receipt_image: null,
         });
       });
     });

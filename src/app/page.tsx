@@ -1,30 +1,56 @@
 import { EventCreateForm } from '@/components/EventCreateForm';
-import { CheckCircle2 } from 'lucide-react';
+import {
+  ShieldCheck,
+  TrendingUp,
+  Receipt,
+  Sparkles,
+  Camera,
+} from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/20 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 py-10 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-xl mx-auto">
         {/* ヘッダー */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white mb-2.5 shadow-md shadow-blue-500/20">
-            <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 mb-3 shadow-xs">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             PayCheck
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
-            立替と送金をシンプルに管理
+          <p className="mt-1.5 text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto">
+            飲み会や旅行の精算を、大人にふさわしい上質な体験に。
           </p>
+
+          {/* 4大特徴ピル */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-zinc-400">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80">
+              <TrendingUp className="w-3 h-3 text-emerald-400" />
+              旅行・複数立替相殺
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80">
+              <Receipt className="w-3 h-3 text-zinc-300" />
+              レシート透明性保証
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80">
+              <Camera className="w-3 h-3 text-amber-400" />
+              思い出アルバム
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80">
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              100%達成スライドショー
+            </span>
+          </div>
         </div>
 
-        {/* フォーム */}
+        {/* 作成フォーム */}
         <EventCreateForm />
 
         {/* フッター */}
-        <div className="mt-8 text-center text-xs text-slate-400">
-          <p>PayCheck © 2026</p>
-        </div>
+        <footer className="mt-12 text-center text-[11px] text-zinc-600">
+          <p>PayCheck - 精算を、スマートで心地よい記憶に。</p>
+        </footer>
       </div>
     </main>
   );
