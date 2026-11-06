@@ -13,12 +13,13 @@ import { saveDestination } from '@/lib/utils/saved-destinations';
 import { compressImage } from '@/lib/utils/image-compress';
 import {
   Loader2,
+  PlusCircle,
+  JapaneseYen,
   Calendar,
   UserCheck,
   CreditCard,
   Camera,
   Check,
-  ArrowRight,
   Receipt,
 } from 'lucide-react';
 
@@ -87,7 +88,6 @@ export const EventCreateForm: React.FC = () => {
     setErrors({});
     setIsSubmitting(true);
 
-    // 送金先が指定されている場合はブラウザに記憶
     if (paymentDestination.trim()) {
       saveDestination(paymentDestination.trim());
     }
@@ -114,42 +114,37 @@ export const EventCreateForm: React.FC = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 max-w-lg mx-auto shadow-sm text-zinc-100"
+      className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-100 max-w-lg mx-auto"
     >
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-zinc-100 tracking-tight">
-          新しい精算イベントを作成
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+          イベント作成
         </h2>
-        <p className="text-xs text-zinc-400 mt-1">
-          イベント情報と参加者を入力して精算ページを発行します。
-        </p>
       </div>
 
       {errorMessage && (
-        <div className="mb-5 p-3.5 rounded-xl bg-red-950/60 border border-red-800/60 text-red-300 text-xs font-medium">
+        <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
           {errorMessage}
         </div>
       )}
 
       {/* イベント名 */}
       <div className="mb-5">
-        <label className="flex items-center text-xs font-semibold text-zinc-300 mb-1.5">
-          <Calendar className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
-          イベント名 <span className="text-red-400 ml-1">*</span>
+        <label className="flex items-center text-sm font-bold text-slate-700 mb-1.5">
+          <Calendar className="w-4 h-4 mr-1.5 text-blue-600" />
+          イベント名 <span className="text-red-500 ml-1 text-xs">*</span>
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例: 送別会、キャンプ代、温泉旅行"
-          className={`w-full px-3.5 py-2.5 rounded-xl border text-sm transition bg-zinc-950 text-zinc-100 placeholder-zinc-500 focus:outline-none ${
-            errors.title
-              ? 'border-red-500 focus:border-red-400'
-              : 'border-zinc-800 focus:border-zinc-500'
-          }`}
+          placeholder="例: 送別会、フットサル代、温泉旅行"
+          className={`w-full px-4 py-3 rounded-xl border text-sm ${
+            errors.title ? 'border-red-500 bg-red-50/20' : 'border-slate-200 bg-slate-50/50'
+          } focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all text-slate-900`}
         />
         {errors.title && (
-          <p className="text-xs text-red-400 mt-1">{errors.title}</p>
+          <p className="text-xs text-red-600 mt-1 font-medium">{errors.title}</p>
         )}
       </div>
 
@@ -163,45 +158,10 @@ export const EventCreateForm: React.FC = () => {
         />
       </div>
 
-      {/* 立替総額 */}
+      {/* 誰が立て替えたか */}
       <div className="mb-5">
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="flex items-center text-xs font-semibold text-zinc-300">
-            立替総額 <span className="text-red-400 ml-1">*</span>
-          </label>
-          {participantCount > 0 && validTotalAmount > 0 && (
-            <span className="text-xs font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md">
-              1人あたり ¥{estimatedPerPerson.toLocaleString()} : {participantCount}名
-            </span>
-          )}
-        </div>
-        <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
-            ¥
-          </span>
-          <input
-            type="number"
-            min="0"
-            step="100"
-            value={totalAmount}
-            onChange={(e) => setTotalAmount(e.target.value)}
-            placeholder="12000"
-            className={`w-full pl-8 pr-3.5 py-2.5 rounded-xl border text-sm transition bg-zinc-950 text-zinc-100 placeholder-zinc-500 focus:outline-none ${
-              errors.amount
-                ? 'border-red-500 focus:border-red-400'
-                : 'border-zinc-800 focus:border-zinc-500'
-            }`}
-          />
-        </div>
-        {errors.amount && (
-          <p className="text-xs text-red-400 mt-1">{errors.amount}</p>
-        )}
-      </div>
-
-      {/* 立替者名 */}
-      <div className="mb-5">
-        <label className="flex items-center text-xs font-semibold text-zinc-300 mb-1.5">
-          <UserCheck className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
+        <label className="flex items-center text-sm font-bold text-slate-700 mb-1.5">
+          <UserCheck className="w-4 h-4 mr-1.5 text-indigo-600" />
           誰が立て替えたか
         </label>
 
@@ -214,13 +174,13 @@ export const EventCreateForm: React.FC = () => {
                   key={p.id}
                   type="button"
                   onClick={() => setPayerName(isSelected ? '' : p.name)}
-                  className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-white text-zinc-950'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  {isSelected && <Check className="w-3 h-3 mr-1 stroke-[3]" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />}
                   {p.name}
                 </button>
               );
@@ -232,36 +192,70 @@ export const EventCreateForm: React.FC = () => {
           type="text"
           value={payerName}
           onChange={(e) => setPayerName(e.target.value)}
-          placeholder="立替者名（参加者タグから選択または直接入力）"
-          className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-500 text-sm focus:outline-none focus:border-zinc-500 transition"
+          placeholder="立替者名（参加者タグを選択または入力）"
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all text-slate-900"
         />
       </div>
 
-      {/* 集金先・送金先情報 & よく使う送金先 */}
+      {/* 立替総額 */}
       <div className="mb-5">
-        <label className="flex items-center text-xs font-semibold text-zinc-300 mb-1.5">
-          <CreditCard className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
-          送金先・受取先情報
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="flex items-center text-sm font-bold text-slate-700">
+            <JapaneseYen className="w-4 h-4 mr-1.5 text-blue-600" />
+            立替総額 <span className="text-red-500 ml-1 text-xs">*</span>
+          </label>
+          {participantCount > 0 && validTotalAmount > 0 && (
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+              1人あたり ¥{estimatedPerPerson.toLocaleString()}（{participantCount}名）
+            </span>
+          )}
+        </div>
+        <div className="relative">
+          <input
+            type="number"
+            min="0"
+            step="100"
+            value={totalAmount}
+            onChange={(e) => setTotalAmount(e.target.value)}
+            placeholder="12000"
+            className={`w-full px-4 py-3 rounded-xl border text-sm ${
+              errors.amount ? 'border-red-500 bg-red-50/20' : 'border-slate-200 bg-slate-50/50'
+            } focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all text-slate-900`}
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">
+            円
+          </span>
+        </div>
+        {errors.amount && (
+          <p className="text-xs text-red-600 mt-1 font-medium">{errors.amount}</p>
+        )}
+      </div>
+
+      {/* 送金先・集金先 */}
+      <div className="mb-5">
+        <label className="flex items-center text-sm font-bold text-slate-700 mb-1.5">
+          <CreditCard className="w-4 h-4 mr-1.5 text-indigo-600" />
+          集金先
         </label>
         <input
           type="text"
           value={paymentDestination}
           onChange={(e) => setPaymentDestination(e.target.value)}
-          placeholder="例: PayPayリンク、PayPay ID、三井住友銀行普通口座"
-          className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-500 text-sm focus:outline-none focus:border-zinc-500 transition"
+          placeholder="例: PayPayリンク、PayPay ID、銀行口座"
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none transition-all text-slate-900"
         />
         <SavedDestinationChips onSelect={(dest) => setPaymentDestination(dest)} />
       </div>
 
       {/* レシート写真の添付 */}
       <div className="mb-6">
-        <label className="flex items-center text-xs font-semibold text-zinc-300 mb-1.5">
-          <Receipt className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
+        <label className="flex items-center text-sm font-bold text-slate-700 mb-1.5">
+          <Receipt className="w-4 h-4 mr-1.5 text-blue-600" />
           レシート写真の添付
         </label>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium cursor-pointer transition">
-            <Camera className="w-4 h-4 text-zinc-400" />
+          <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition">
+            <Camera className="w-4 h-4 text-slate-500" />
             <span>{isCompressing ? '圧縮処理中...' : 'レシートを選択'}</span>
             <input
               type="file"
@@ -279,12 +273,12 @@ export const EventCreateForm: React.FC = () => {
               <img
                 src={receiptImage}
                 alt="レシート"
-                className="w-10 h-10 object-cover rounded-lg border border-zinc-700"
+                className="w-11 h-11 object-cover rounded-xl border border-slate-300 shadow-xs"
               />
               <button
                 type="button"
                 onClick={() => setReceiptImage(null)}
-                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-full flex items-center justify-center text-[10px] cursor-pointer"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs cursor-pointer shadow-xs"
               >
                 ×
               </button>
@@ -297,17 +291,17 @@ export const EventCreateForm: React.FC = () => {
       <button
         type="submit"
         disabled={isSubmitting || isCompressing}
-        className="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-semibold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-xs text-sm"
+        className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-2xl transition shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>発行処理中...</span>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>作成中...</span>
           </>
         ) : (
           <>
-            <span>精算URLを発行する</span>
-            <ArrowRight className="w-4 h-4" />
+            <PlusCircle className="w-5 h-5" />
+            <span>集金URLを発行する</span>
           </>
         )}
       </button>

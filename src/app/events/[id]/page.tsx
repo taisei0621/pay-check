@@ -151,10 +151,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-3">
-          <Loader2 className="w-7 h-7 text-zinc-400 animate-spin" />
-          <p className="text-zinc-400 text-xs font-mono">読み込み中...</p>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-slate-600 text-sm font-semibold">読み込み中...</p>
         </div>
       </main>
     );
@@ -162,26 +162,26 @@ export default function EventDetailPage({ params }: EventPageProps) {
 
   if (error || !eventData) {
     return (
-      <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-        <div className="bg-zinc-900 rounded-2xl p-8 max-w-md w-full border border-zinc-800 text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-zinc-100 mb-1">
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-lg border border-slate-100 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
             イベントを読み込めませんでした
           </h2>
-          <p className="text-zinc-400 text-xs mb-6">
+          <p className="text-slate-600 text-sm mb-6">
             {error || '指定されたイベントは存在しません'}
           </p>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center space-x-3">
             <button
               onClick={fetchEvent}
-              className="inline-flex items-center px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-xl transition cursor-pointer"
+              className="inline-flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              <RefreshCw className="w-4 h-4 mr-1.5" />
               再試行
             </button>
             <Link
               href="/"
-              className="inline-flex items-center px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold rounded-xl transition"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition"
             >
               トップへ戻る
             </Link>
@@ -199,33 +199,32 @@ export default function EventDetailPage({ params }: EventPageProps) {
   const expenses = eventData.expenses || [];
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 py-8 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-blue-50/20 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* ナビゲーションバー */}
         <div className="flex items-center justify-between mb-5">
           <Link
             href="/"
-            className="inline-flex items-center text-xs font-medium text-zinc-400 hover:text-white transition"
+            className="inline-flex items-center text-xs font-bold text-slate-500 hover:text-slate-900 transition"
           >
-            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+            <ArrowLeft className="w-4 h-4 mr-1" />
             トップへ
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-2">
             {/* LINE案内文コピー */}
             <button
               onClick={handleCopyShareMessage}
-              className="inline-flex items-center px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium rounded-xl transition cursor-pointer"
-              title="LINEやSNS用の案内文をコピー"
+              className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
             >
               {copiedMessage ? (
                 <>
-                  <Check className="w-3 h-3 mr-1 text-emerald-400 stroke-[3]" />
-                  <span className="text-emerald-400">案内文コピー済</span>
+                  <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                  <span>案内文コピー済</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3 h-3 mr-1 text-zinc-400" />
+                  <Share2 className="w-3.5 h-3.5 mr-1" />
                   <span>案内文コピー</span>
                 </>
               )}
@@ -234,17 +233,16 @@ export default function EventDetailPage({ params }: EventPageProps) {
             {/* URLコピー */}
             <button
               onClick={handleCopyUrl}
-              className="inline-flex items-center px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium rounded-xl transition cursor-pointer"
-              title="URLをコピー"
+              className="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
             >
               {copiedUrl ? (
                 <>
-                  <Check className="w-3 h-3 mr-1 text-emerald-400 stroke-[3]" />
-                  <span className="text-emerald-400">URLコピー済</span>
+                  <Check className="w-3.5 h-3.5 mr-1 text-blue-600 stroke-[3]" />
+                  <span className="text-blue-600">URLコピー済</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3 h-3 mr-1 text-zinc-400" />
+                  <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
                   <span>URLコピー</span>
                 </>
               )}
@@ -252,12 +250,12 @@ export default function EventDetailPage({ params }: EventPageProps) {
           </div>
         </div>
 
-        {/* イベントヘッダーカード */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 mb-5 shadow-sm">
-          <span className="text-[11px] font-semibold tracking-wider uppercase text-zinc-500 block mb-1">
+        {/* イベント名カード */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-slate-200/50 border border-slate-100 mb-5">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
             イベント名
           </span>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 break-words tracking-tight">
+          <h1 className="text-2xl font-black text-slate-900 break-words tracking-tight">
             {eventData.title}
           </h1>
         </div>
@@ -272,21 +270,21 @@ export default function EventDetailPage({ params }: EventPageProps) {
           />
         )}
 
-        {/* 送金先アクションカード */}
+        {/* 送金アクションカード */}
         <PaymentActionCard
           destination={eventData.payment_destination}
           payerName={eventData.payer_name}
         />
 
         {/* タブナビゲーション */}
-        <div className="flex items-center gap-1.5 mb-5 p-1 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+        <div className="flex items-center gap-1.5 mb-5 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70">
           <button
             type="button"
             onClick={() => setActiveTab('standard')}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'standard'
-                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ListOrdered className="w-3.5 h-3.5" />
@@ -296,16 +294,16 @@ export default function EventDetailPage({ params }: EventPageProps) {
           <button
             type="button"
             onClick={() => setActiveTab('expenses')}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'expenses'
-                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Plane className="w-3.5 h-3.5 text-emerald-400" />
+            <Plane className="w-3.5 h-3.5 text-blue-600" />
             <span>旅行相殺</span>
             {expenses.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
                 {expenses.length}
               </span>
             )}
@@ -314,16 +312,16 @@ export default function EventDetailPage({ params }: EventPageProps) {
           <button
             type="button"
             onClick={() => setActiveTab('photos')}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'photos'
-                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Camera className="w-3.5 h-3.5 text-amber-400" />
+            <Camera className="w-3.5 h-3.5 text-amber-500" />
             <span>思い出アルバム</span>
             {photos.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-950 text-zinc-300 border border-zinc-800 font-mono">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold">
                 {photos.length}
               </span>
             )}

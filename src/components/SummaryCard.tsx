@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SettlementSummary, PaymentSummary } from '@/types/database';
-import { UserCheck, Trophy, Receipt } from 'lucide-react';
+import { Trophy, UserCheck, Receipt } from 'lucide-react';
 
 interface SummaryCardProps {
   settlement?: SettlementSummary;
@@ -32,24 +32,24 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   const isAllPaid = totalCount > 0 && remainingAmount === 0;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 mb-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-lg shadow-slate-200/50 border border-slate-100 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
           {payerName ? (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 mb-1">
-              <UserCheck className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 mb-1">
+              <UserCheck className="w-4 h-4" />
               <span>立替者: {payerName}</span>
             </div>
           ) : (
-            <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
               精算状況
             </span>
           )}
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-zinc-100 tracking-tight font-mono">
-              ¥{totalAmount.toLocaleString()}
+            <span className="text-3xl font-black text-slate-900 tracking-tight">
+              {totalAmount.toLocaleString()}
             </span>
-            <span className="text-xs text-zinc-400">総額</span>
+            <span className="text-sm font-semibold text-slate-500">円立替</span>
           </div>
         </div>
 
@@ -59,23 +59,23 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
             <button
               type="button"
               onClick={onOpenReceipt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-medium transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer shadow-xs"
             >
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+              <Receipt className="w-3.5 h-3.5 text-blue-600" />
               <span>レシート明細</span>
             </button>
           )}
 
           <div className="text-right">
-            <div className="flex items-center justify-end gap-1 mb-0.5">
-              {isAllPaid && <Trophy className="w-3.5 h-3.5 text-amber-400" />}
-              <span className="text-xs font-medium text-zinc-400">
+            <div className="flex items-center justify-end space-x-1 mb-0.5">
+              {isAllPaid && <Trophy className="w-4 h-4 text-amber-500" />}
+              <span className="text-xs font-bold text-slate-400">
                 {isAllPaid ? '回収完了' : '回収進捗'}
               </span>
             </div>
             <p
-              className={`text-2xl font-black font-mono tracking-tight ${
-                isAllPaid ? 'text-emerald-400' : 'text-zinc-100'
+              className={`text-3xl font-black tracking-tight ${
+                isAllPaid ? 'text-emerald-600' : 'text-blue-600'
               }`}
             >
               {progressPercentage}%
@@ -85,61 +85,55 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       </div>
 
       {/* プログレスバー */}
-      <div className="w-full bg-zinc-950 rounded-full h-2 mb-5 overflow-hidden p-0.5 border border-zinc-800">
+      <div className="w-full bg-slate-100 rounded-full h-2.5 mb-5 overflow-hidden p-0.5 border border-slate-200/60">
         <div
           className={`h-full rounded-full transition-all duration-700 ease-out ${
-            isAllPaid ? 'bg-emerald-400' : 'bg-zinc-200'
+            isAllPaid
+              ? 'bg-emerald-500'
+              : 'bg-blue-600'
           }`}
           style={{ width: `${progressPercentage}%` }}
         />
       </div>
 
-      {/* サマリーグリッド */}
+      {/* サマリー数値 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="bg-zinc-950/70 rounded-xl p-3 border border-zinc-800/80">
-          <span className="text-[11px] text-zinc-500 font-medium block mb-0.5">
-            1人あたり
-          </span>
-          <p className="text-base font-bold text-zinc-100 font-mono">
+        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+          <span className="text-xs text-slate-400 font-medium block mb-0.5">1人あたり</span>
+          <p className="text-lg font-bold text-slate-900">
             ¥{perPerson.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-zinc-950/70 rounded-xl p-3 border border-zinc-800/80">
-          <span className="text-[11px] text-zinc-500 font-medium block mb-0.5">
-            未回収額
-          </span>
-          <p className="text-base font-bold text-amber-400 font-mono">
-            ¥{remainingAmount.toLocaleString()}
+        <div className="bg-blue-50/70 rounded-2xl p-3 border border-blue-100">
+          <span className="text-xs text-blue-600 font-medium block mb-0.5">未回収額</span>
+          <p className="text-lg font-bold text-blue-700">
+            残り ¥{remainingAmount.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-zinc-950/70 rounded-xl p-3 border border-zinc-800/80">
-          <span className="text-[11px] text-zinc-500 font-medium block mb-0.5">
-            回収状況
-          </span>
-          <p className="text-base font-bold text-emerald-400 font-mono">
+        <div className="bg-emerald-50/70 rounded-2xl p-3 border border-emerald-100">
+          <span className="text-xs text-emerald-600 font-medium block mb-0.5">回収済</span>
+          <p className="text-lg font-bold text-emerald-700">
             {paidCount} / {totalCount} 名
           </p>
         </div>
 
-        <div className="bg-zinc-950/70 rounded-xl p-3 border border-zinc-800/80">
-          <span className="text-[11px] text-zinc-500 font-medium block mb-0.5">
-            回収対象額
-          </span>
-          <p className="text-base font-bold text-zinc-300 font-mono">
+        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+          <span className="text-xs text-slate-400 font-medium block mb-0.5">回収対象額</span>
+          <p className="text-lg font-bold text-slate-700">
             ¥{targetAmount.toLocaleString()}
           </p>
         </div>
       </div>
 
-      {/* 端数丸め差額 */}
+      {/* 端数丸め差額の案内 */}
       {settlement?.payerDiff !== undefined && settlement.payerDiff !== 0 && (
-        <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-          <span className="text-zinc-500">端数丸め差額</span>
+        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span className="text-slate-500 font-medium">端数丸めによる差額</span>
           <span
-            className={`font-semibold font-mono ${
-              settlement.payerDiff > 0 ? 'text-zinc-300' : 'text-amber-400'
+            className={`font-bold ${
+              settlement.payerDiff > 0 ? 'text-blue-600' : 'text-amber-600'
             }`}
           >
             {settlement.payerDiff > 0

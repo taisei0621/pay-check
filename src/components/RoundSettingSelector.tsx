@@ -32,8 +32,8 @@ export const RoundSettingSelector: React.FC<RoundSettingSelectorProps> = ({
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-2 mb-3 px-1">
-      <div className="flex items-center text-xs font-medium text-zinc-400">
-        <Calculator className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+      <div className="flex items-center text-xs font-bold text-slate-500">
+        <Calculator className="w-3.5 h-3.5 mr-1 text-slate-400" />
         <span>端数計算</span>
       </div>
 
@@ -48,10 +48,10 @@ export const RoundSettingSelector: React.FC<RoundSettingSelectorProps> = ({
               key={opt.id}
               type="button"
               onClick={() => onChange({ unit: opt.unit, method: opt.method })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                 isSelected
-                  ? 'bg-white text-zinc-950 font-semibold'
-                  : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200 hover:bg-zinc-850'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
               {opt.label}

@@ -23,9 +23,9 @@ export const SavedDestinationChips: React.FC<SavedDestinationChipsProps> = ({
 
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-500 mb-1.5">
-        <Clock className="w-3 h-3 text-zinc-400" />
-        <span>よく使う送金先から入力：</span>
+      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 mb-1.5">
+        <Clock className="w-3.5 h-3.5 text-slate-400" />
+        <span>よく使う送金先から選択:</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {savedList.map((dest, idx) => (
@@ -33,7 +33,7 @@ export const SavedDestinationChips: React.FC<SavedDestinationChipsProps> = ({
             key={idx}
             type="button"
             onClick={() => onSelect(dest)}
-            className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition cursor-pointer max-w-xs truncate"
+            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200/80 transition cursor-pointer max-w-xs truncate"
             title={dest}
           >
             {dest}
